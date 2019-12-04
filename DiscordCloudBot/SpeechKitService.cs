@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -7,7 +8,7 @@ namespace DiscordCloudBot
 {
     public class SpeechKitService
     {
-        public async Task<byte[]> SpeakAsync(string text)
+        public async Task<Stream> SpeakAsync(string text)
         {
             var iamToken = Environment.GetEnvironmentVariable("YANDEX_IAM_TOKEN");
             var folderId = Environment.GetEnvironmentVariable("YANDEX_FOLDER_ID");
@@ -16,12 +17,14 @@ namespace DiscordCloudBot
             var values = new Dictionary<string, string>
             {
                 {"text", text},
-                {"lang", "en-US"},
-                {"folderId", folderId}
+                {"folderId", folderId},
+                {"format", "oggopus"}
             };
             var content = new FormUrlEncodedContent(values);
-            var response = await client.PostAsync(@"https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize", content);
-            return await response.Content.ReadAsByteArrayAsync();
+            var response =
+                await client.PostAsync(@"https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize", content);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStreamAsync();
         }
     }
 }

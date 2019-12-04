@@ -1,31 +1,50 @@
 ﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordCloudBot
 {
-    public class Program
+    internal class Program
     {
-        private DiscordSocketClient _client;
-
-        public static void Main(string[] args)
+        private static void Main(string[] args)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
         public async Task MainAsync()
         {
-            _client = new DiscordSocketClient();
-            _client.Log += Log;
-            await _client.LoginAsync(TokenType.Bot,
+            using var serviceProvider = BuildServiceProvider();
+            var client = serviceProvider.GetService<DiscordSocketClient>();
+
+            client.Log += LogAsync;
+            serviceProvider.GetService<CommandService>().Log += LogAsync;
+
+            await client.LoginAsync(TokenType.Bot,
                 Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
-            await _client.StartAsync();
+            await client.StartAsync();
+
+            await serviceProvider.GetService<CommandHandlingService>().InitializeAsync();
+
             await Task.Delay(-1);
         }
 
+        private ServiceProvider BuildServiceProvider()
+        {
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandlingService>()
+                .AddTransient<SpeechKitService>()
+                .BuildServiceProvider();
+        }
 
-        private Task Log(LogMessage message)
+
+        private Task LogAsync(LogMessage message)
         {
             Console.WriteLine(message.ToString());
             return Task.CompletedTask;
