@@ -66,6 +66,7 @@ namespace DiscordCloudBot
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddTransient<SpeechKitService>()
+                .AddSingleton<TranslateService>()
                 .BuildServiceProvider();
         }
 
