@@ -1,8 +1,8 @@
 using Xunit;
 
 namespace Tests {
-  [Fact]
   public class Test1 {
-    Assert.Equal(true, true);
+    [Fact]
+    public void VerifySomething() => Assert.Equal(true, true);
   }
 }
