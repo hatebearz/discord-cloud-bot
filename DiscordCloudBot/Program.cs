@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
@@ -8,12 +9,28 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordCloudBot
 {
-    internal class Program
+    internal class Program : IDisposable
     {
+        private readonly TextWriter _logWriter = File.CreateText("log.txt");
+
+        public void Dispose()
+        {
+            _logWriter.Dispose();
+        }
+
         private static void Main(string[] args)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            new Program().MainAsync().GetAwaiter().GetResult();
+            var program = new Program();
+            try
+            {
+                program.MainAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception exc)
+            {
+                program.LogAsync(exc).GetAwaiter().GetResult();
+                program.Dispose();
+            }
         }
 
         public async Task MainAsync()
@@ -47,10 +64,16 @@ namespace DiscordCloudBot
         }
 
 
-        private Task LogAsync(LogMessage message)
+        private async Task LogAsync(LogMessage message)
         {
             Console.WriteLine(message.ToString());
-            return Task.CompletedTask;
+            await _logWriter.WriteLineAsync(message.ToString());
+        }
+
+        private async Task LogAsync(Exception exception)
+        {
+            await _logWriter.WriteLineAsync($"{DateTime.UtcNow}: Unhandled exception occured.");
+            await _logWriter.WriteLineAsync($"Message: {exception.Message}");
         }
     }
 }
