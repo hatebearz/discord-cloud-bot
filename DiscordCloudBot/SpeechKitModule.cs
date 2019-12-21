@@ -17,7 +17,7 @@ namespace DiscordCloudBot
             _speechKitService = speechKitService;
         }
 
-        [Command("say", RunMode = RunMode.Async)]
+        [Command("скажи", RunMode = RunMode.Async)]
         public async Task SayAsync([Remainder] string text)
         {
             var voiceChannel = (Context.User as IGuildUser)?.VoiceChannel;
@@ -38,10 +38,12 @@ namespace DiscordCloudBot
 
             await message.ModifyAsync(x => x.Content = new Optional<string>("Sending audio to voice channel..."));
 
-            using var audioClient = await voiceChannel.ConnectAsync();
             using var ffmpeg = RunFfmpegEncoder(guid);
-            await using var output = ffmpeg.StandardOutput.BaseStream;
+            ffmpeg.WaitForExit();
+
+            using var audioClient = await voiceChannel.ConnectAsync();
             await using var stream = audioClient.CreatePCMStream(AudioApplication.Voice);
+            using (var output = File.OpenRead($"{guid}.wav"))
             {
                 try
                 {
@@ -50,18 +52,18 @@ namespace DiscordCloudBot
                 finally
                 {
                     await stream.FlushAsync();
+                    await message.ModifyAsync(x => x.Content = new Optional<string>("Deleting temp files..."));
+
+                    File.Delete($"{guid}.raw");
+                    File.Delete($"{guid}.wav");
+
+                    await message.DeleteAsync();
+                    await Context.Message.DeleteAsync();
                 }
             }
-
-            await message.ModifyAsync(x => x.Content = new Optional<string>("Deleting temp files..."));
-
-            File.Delete($"{guid}.raw");
-
-            await message.DeleteAsync();
-            await Context.Message.DeleteAsync();
         }
 
-        [Command("leave")]
+        [Command("уйди")]
         public async Task LeaveVoiceChannelAsync()
         {
             var voiceChannel = (Context?.User as IGuildUser)?.VoiceChannel;
@@ -83,7 +85,7 @@ namespace DiscordCloudBot
                 {
                     FileName = "ffmpeg",
                     Arguments =
-                        $" -hide_banner -loglevel panic -f s16le -ar 48000 -ac 1 -i {guid}.raw -ac 2 pipe:1",
+                        $" -hide_banner -loglevel panic -f s16le -ar 48000 -ac 1 -i {guid}.raw -ac 2 {guid}.wav",
                     UseShellExecute = false,
                     RedirectStandardOutput = true
                 }
