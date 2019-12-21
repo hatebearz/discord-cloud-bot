@@ -28,6 +28,7 @@ namespace DiscordCloudBot
             }
 
             var guid = Guid.NewGuid();
+            var message = await Context.Channel.SendMessageAsync("Loading audio from Yandex Cloud...");
             await using (var file = File.Create(guid + ".raw"))
             {
                 await using var audio = await _speechKitService.SpeakAsync(text);
@@ -35,18 +36,28 @@ namespace DiscordCloudBot
                 file.Close();
             }
 
+            await message.ModifyAsync(x => x.Content = new Optional<string>("Sending audio to voice channel..."));
+
             using var audioClient = await voiceChannel.ConnectAsync();
+            using var ffmpeg = RunFfmpegEncoder(guid);
+            await using var output = ffmpeg.StandardOutput.BaseStream;
             await using var stream = audioClient.CreatePCMStream(AudioApplication.Voice);
-            using var opus = RunFfmpegEncoder(guid);
-            opus.WaitForExit();
-            await using (var openWav = File.OpenRead($"{guid}.wav"))
             {
-                await openWav.CopyToAsync(stream);
+                try
+                {
+                    await output.CopyToAsync(stream);
+                }
+                finally
+                {
+                    await stream.FlushAsync();
+                }
             }
 
-            File.Delete($"{guid}.wav");
+            await message.ModifyAsync(x => x.Content = new Optional<string>("Deleting temp files..."));
+
             File.Delete($"{guid}.raw");
-            await stream.FlushAsync();
+
+            await message.DeleteAsync();
             await Context.Message.DeleteAsync();
         }
 
@@ -72,7 +83,7 @@ namespace DiscordCloudBot
                 {
                     FileName = "ffmpeg",
                     Arguments =
-                        $"-f s16le -ac 1 -i {guid}.raw -ac 2 {guid}.wav",
+                        $" -hide_banner -loglevel panic -f s16le -ar 48000 -ac 1 -i {guid}.raw -ac 2 pipe:1",
                     UseShellExecute = false,
                     RedirectStandardOutput = true
                 }
