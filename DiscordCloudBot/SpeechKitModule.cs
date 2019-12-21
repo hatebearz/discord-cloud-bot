@@ -72,7 +72,7 @@ namespace DiscordCloudBot
                 {
                     FileName = "opusdec",
                     Arguments =
-                        $"--force-stereo {guid}.ogg {guid}.raw",
+                        $"{guid}.ogg {guid}.raw",
                     UseShellExecute = false,
                     RedirectStandardOutput = true
                 }
