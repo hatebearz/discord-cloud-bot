@@ -11,11 +11,17 @@ namespace DiscordCloudBot
 {
     internal class Program : IDisposable
     {
-        private readonly TextWriter _logWriter = File.CreateText("log.txt");
+        private readonly StreamWriter _logWriter;
 
         public void Dispose()
         {
             _logWriter.Dispose();
+        }
+
+        private Program()
+        {
+            _logWriter = File.CreateText("log.txt");
+            _logWriter.AutoFlush = true;
         }
 
         private static void Main(string[] args)
