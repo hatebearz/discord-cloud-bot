@@ -24,8 +24,11 @@ namespace DiscordCloudBot
             client.Log += LogAsync;
             serviceProvider.GetService<CommandService>().Log += LogAsync;
 
-            await client.LoginAsync(TokenType.Bot,
-                Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
+
+            var discordToken = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
+            if (string.IsNullOrEmpty(discordToken))
+                throw new Exception("Environment variable DISCORD_TOKEN is not set.");
+            await client.LoginAsync(TokenType.Bot, discordToken);
             await client.StartAsync();
 
             await serviceProvider.GetService<CommandHandlingService>().InitializeAsync();
