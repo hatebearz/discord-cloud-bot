@@ -21,6 +21,7 @@ namespace DiscordCloudBot
             var values = new Dictionary<string, string>
             {
                 {"text", text},
+                {"lang", "ru-RU" },
                 {"folderId", folderId},
                 {"format", "oggopus"}
             };
