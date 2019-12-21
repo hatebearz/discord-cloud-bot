@@ -23,7 +23,7 @@ namespace DiscordCloudBot
                 {"text", text},
                 {"lang", "ru-RU" },
                 {"folderId", folderId},
-                {"format", "oggopus"}
+                {"format", "lpcm"}
             };
             var content = new FormUrlEncodedContent(values);
             var response =

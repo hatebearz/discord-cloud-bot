@@ -28,7 +28,7 @@ namespace DiscordCloudBot
             }
 
             var guid = Guid.NewGuid();
-            await using (var file = File.Create(guid + ".ogg"))
+            await using (var file = File.Create(guid + ".raw"))
             {
                 await using var audio = await _speechKitService.SpeakAsync(text);
                 await audio.CopyToAsync(file);
@@ -37,14 +37,14 @@ namespace DiscordCloudBot
 
             using var audioClient = await voiceChannel.ConnectAsync();
             await using var stream = audioClient.CreatePCMStream(AudioApplication.Voice);
-            using var opus = RunOpusDecoder(guid);
+            using var opus = RunFfmpegEncoder(guid);
             opus.WaitForExit();
-            await using (var openWav = File.OpenRead($"{guid}.raw"))
+            await using (var openWav = File.OpenRead($"{guid}.wav"))
             {
                 await openWav.CopyToAsync(stream);
             }
 
-            File.Delete($"{guid}.ogg");
+            File.Delete($"{guid}.wav");
             File.Delete($"{guid}.raw");
             await stream.FlushAsync();
             await Context.Message.DeleteAsync();
@@ -64,15 +64,15 @@ namespace DiscordCloudBot
             await Context.Message.DeleteAsync();
         }
 
-        private Process RunOpusDecoder(Guid guid)
+        private Process RunFfmpegEncoder(Guid guid)
         {
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "opusdec",
+                    FileName = "ffmpeg",
                     Arguments =
-                        $"{guid}.ogg {guid}.raw",
+                        $"-f s16le -ac 1 -i {guid}.raw -ac 2 {guid}.wav",
                     UseShellExecute = false,
                     RedirectStandardOutput = true
                 }
